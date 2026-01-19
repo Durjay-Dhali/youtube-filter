@@ -1,20 +1,30 @@
-console.log(">>> EXTENSION LOADED: YouTube View Filter (Regex Mode) <<<");
+console.log(">>> EXTENSION LOADED: YT Filter V2 <<<");
 
-const MIN_VIEWS = 500000;
+// Default limit
+let MIN_VIEWS = 500000;
 
-// Helper: Extracts "1.2M" or "400K" from a raw string like "Video Title 1.2M views 5 hours ago"
+// 1. Load User Setting immediately
+chrome.storage.local.get(['minViews'], (result) => {
+    if (result.minViews) {
+        MIN_VIEWS = parseInt(result.minViews);
+        console.log(`[YT-Filter] Threshold set to: ${MIN_VIEWS}`);
+    }
+});
+
+// 2. Listen for changes (so you don't have to reload page to update limit)
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (changes.minViews) {
+        MIN_VIEWS = changes.minViews.newValue;
+        console.log(`[YT-Filter] Updated Threshold to: ${MIN_VIEWS}`);
+        // Re-run filter immediately to apply new limit
+        runFilter(); 
+    }
+});
+
 function extractViewsFromText(fullText) {
     if (!fullText) return -1;
-    
-    // Regex explanation:
-    // \b          -> word boundary (start of number)
-    // (\d+(\.\d+)?) -> captures numbers like 100 or 1.5
-    // ([KMB]?)    -> captures the multiplier K, M, or B (optional)
-    // \s*views    -> looks for the word "views" after the number
     const regex = /\b(\d+(?:\.\d+)?)([KMB]?)\s*views/i;
-    
     const match = fullText.match(regex);
-    
     if (!match) return -1;
 
     let number = parseFloat(match[1]);
@@ -29,41 +39,28 @@ function extractViewsFromText(fullText) {
 }
 
 function runFilter() {
-    // Safety check for Subscriptions page
     if (window.location.href.includes('/feed/subscriptions')) return;
 
-    // Select all video cards (Home feed style)
     const cards = document.querySelectorAll('ytd-rich-item-renderer');
 
     cards.forEach(card => {
-        // Optimization: Skip if already checked
-        if (card.getAttribute('data-checked') === 'true') return;
-
-        // Get all text inside the card (Title, views, author, etc.)
-        const fullText = card.innerText;
+        // Note: We removed the "data-checked" check so that if you change 
+        // the limit in the popup, it can re-evaluate already loaded videos.
         
-        // Try to find the view count in that text pile
+        const fullText = card.innerText;
         const views = extractViewsFromText(fullText);
 
         if (views > -1) {
-            // Log what we found to the console
-            // console.log(`Found: ${views} views in card`);
-
             if (views < MIN_VIEWS) {
-                // --- DEBUG MODE: RED BORDER ---
-                // Instead of display: none, we use a border to verify it works.
-                // card.style.border = "5px solid red";
-                card.style.opacity = "0.5";
-                
-                // UNCOMMENT THE LINE BELOW TO ACTUALLY HIDE
+                // HIDE VIDEO
                 card.style.display = 'none';
+            } else {
+                // SHOW VIDEO (In case you lowered the limit, we need to bring them back)
+                card.style.display = 'block'; 
             }
         }
-
-        // Mark checked so we don't re-process
-        card.setAttribute('data-checked', 'true');
     });
 }
 
-// Run repeatedly to catch scroll
+// Run repeatedly
 setInterval(runFilter, 2000);
