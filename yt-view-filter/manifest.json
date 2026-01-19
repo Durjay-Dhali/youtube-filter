@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube View Filter (>500k)",
+  "version": "1.0",
+  "description": "Hides videos with less than 500k views from the Home feed, but keeps your Subscriptions page safe.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
