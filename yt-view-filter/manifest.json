@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "YouTube View Filter (>500k)",
-  "version": "1.0",
-  "description": "Hides videos with less than 500k views from the Home feed, but keeps your Subscriptions page safe.",
+  "name": "YouTube View Filter",
+  "version": "2.0",
+  "description": "Hides videos with low views from the Home feed.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
